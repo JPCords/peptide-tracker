@@ -354,9 +354,40 @@ textarea{resize:vertical;min-height:64px;}
 .workout-session-exercises{display:flex;flex-direction:column;gap:6px;margin-top:10px;}
 .workout-session-line{font-size:12px;color:var(--color-text-secondary);line-height:1.5;}
 .workout-helper{font-size:12px;color:var(--color-text-tertiary);line-height:1.5;}
+.exercise-set-grid.rest-enabled{grid-template-columns:72px 1fr 1fr 1fr auto;}
+.workout-mini-btn{font-size:11px;font-weight:700;padding:5px 9px;border-radius:10px;border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-secondary);cursor:pointer;}
+.workout-mini-btn:hover{color:var(--color-text-primary);border-color:var(--color-border-primary);}
+.workout-mini-btn.warn{color:var(--color-text-warning);border-color:var(--color-border-warning);}
+.workout-mini-btn.good{color:var(--color-text-success);border-color:var(--color-border-success);}
+.workout-completed-wrap{margin-top:12px;padding-top:12px;border-top:0.5px solid var(--color-border-tertiary);}
+.workout-completed-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:14px;padding:10px;margin-top:8px;}
+.workout-completed-title{font-size:13px;font-weight:700;color:var(--color-text-primary);}
+.workout-completed-meta{font-size:12px;color:var(--color-text-secondary);line-height:1.5;margin-top:4px;}
+.workout-rest-display{font-size:11px;font-weight:700;color:var(--color-text-info);min-width:52px;text-align:center;}
+.workout-superset-badge{font-size:10px;font-weight:700;padding:3px 7px;border-radius:99px;background:var(--color-background-warning);color:var(--color-text-warning);letter-spacing:0.05em;text-transform:uppercase;}
+.workout-exercise-editor{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.growth-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:10px;}
+.growth-card{background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:16px;padding:14px;}
+.growth-label{font-size:10px;font-weight:700;color:var(--color-text-tertiary);letter-spacing:0.08em;text-transform:uppercase;}
+.growth-value{font-size:24px;font-weight:700;color:var(--color-text-primary);letter-spacing:-0.02em;margin-top:6px;}
+.growth-sub{font-size:12px;color:var(--color-text-secondary);line-height:1.5;margin-top:4px;}
+.growth-list{display:flex;flex-direction:column;gap:8px;}
+.growth-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--color-border-tertiary);}
+.growth-row:last-child{border-bottom:none;padding-bottom:0;}
+.growth-area{font-size:13px;font-weight:700;color:var(--color-text-primary);}
+.growth-meta{font-size:12px;color:var(--color-text-secondary);line-height:1.5;margin-top:3px;}
+.growth-pill{font-size:11px;font-weight:700;padding:5px 10px;border-radius:99px;white-space:nowrap;}
+.growth-pill.up{background:var(--color-background-success);color:var(--color-text-success);}
+.growth-pill.flat{background:var(--color-background-secondary);color:var(--color-text-tertiary);border:0.5px solid var(--color-border-tertiary);}
+.growth-pill.down{background:var(--color-background-warning);color:var(--color-text-warning);}
 @media(max-width:760px){
   .workout-grid{grid-template-columns:1fr;}
   .exercise-analytics{grid-template-columns:1fr;}
+  .exercise-set-grid.rest-enabled{grid-template-columns:60px 1fr 1fr 1fr;}
+  .workout-rest-display{grid-column:1/-1;text-align:left;min-width:0;}
+}
+@media(max-width:640px){
+  .growth-grid{grid-template-columns:1fr;}
 }
 .macro-bar-wrap{margin-top:6px;}
 .macro-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
@@ -1580,6 +1611,19 @@ textarea{resize:vertical;min-height:64px;}
         </div>
         <button class="btn btn-primary" onclick="logMeasurements()">Save measurements</button>
       </div>
+      <div class="growth-grid">
+        <div class="growth-card"><div class="growth-label">Muscle Areas Up</div><div class="growth-value" id="meas-muscle-up">0</div><div class="growth-sub" id="meas-muscle-up-sub">Start logging measurements to see where size is climbing.</div></div>
+        <div class="growth-card"><div class="growth-label">Upper Body Change</div><div class="growth-value" id="meas-upper-change">0 cm</div><div class="growth-sub" id="meas-upper-change-sub">Chest and arm growth summary will show here.</div></div>
+        <div class="growth-card"><div class="growth-label">Strength Momentum</div><div class="growth-value" id="meas-strength-momentum">0</div><div class="growth-sub" id="meas-strength-momentum-sub">Workout PR trends will appear after a few sessions.</div></div>
+      </div>
+      <div class="card">
+        <div class="section-label" style="margin-bottom:10px">Body-area change summary</div>
+        <div id="meas-area-summary"></div>
+      </div>
+      <div class="card">
+        <div class="section-label" style="margin-bottom:10px">Strength trends</div>
+        <div id="meas-strength-summary"></div>
+      </div>
       <div class="card"><div class="section-label" style="margin-bottom:10px">History</div><div id="meas-list"></div></div>
     </div>
 
@@ -1739,6 +1783,7 @@ let profile={},macros={},wlTags={};
 let wellbeingLogs=[],measurements=[],workouts=[],waterLog={},waterGoal=2500,mealLog={};
 let journalEntries=[];
 let workoutSplits=[],workoutSessions=[],workoutDraftDays=[];
+let workoutLiveDrafts={},workoutRestTimers={};
 let activeFilter='all';
 let customTmplItems=[];
 let wpRange=30;
@@ -1748,6 +1793,7 @@ let journalArchiveOpen=false;
 let themePreference='system';
 let editingWorkoutSplitId=null,workoutDraftName='',workoutDraftDaysPerWeek=4,activeWorkoutDraftDayId=null,selectedWorkoutSplitId=null,selectedWorkoutDayId=null;
 let workoutDraftDayName='Push Day',workoutDraftWeekday='Monday',workoutDraftExerciseName='',workoutDraftExerciseSets=3,workoutDraftExerciseMinReps=8,workoutDraftExerciseMaxReps=12;
+let workoutDraftExerciseSuperset='',workoutEditingExerciseId=null,workoutShowCompletedExercises=false;
 let workoutSessionDate=today(),workoutSessionDuration='',workoutSessionNotes='';
 const JOURNAL_TAGS=['Appetite','Cravings','Sleep','Mood','Energy','Focus','Recovery','Skin','Libido','Nausea','Headache','Bloating'];
 
@@ -1803,6 +1849,7 @@ function loadAll(){
   journalEntries=ls('peptide-journal',[]);
   workoutSplits=ls('peptide-workout-splits',[]);
   workoutSessions=ls('peptide-workout-sessions',[]);
+  workoutLiveDrafts=ls('peptide-workout-live-drafts',{});
   themePreference=ls('peptide-theme','system');
   schedules=schedules.map(normalizeScheduleItem);
   const startInput=document.getElementById('sc-start');if(startInput&&!startInput.value)startInput.value=today();
@@ -3489,7 +3536,7 @@ const ALL_DATA_KEYS=[
   ['peptide-macros','macros'],['peptide-wl-tags','wlTags'],
   ['peptide-wellbeing','wellbeingLogs'],['peptide-measurements','measurements'],
   ['peptide-workouts','workouts'],['peptide-workout-splits','workoutSplits'],
-  ['peptide-workout-sessions','workoutSessions'],['peptide-water-log','waterLog'],
+  ['peptide-workout-sessions','workoutSessions'],['peptide-workout-live-drafts','workoutLiveDrafts'],['peptide-water-log','waterLog'],
   ['peptide-water-goal','waterGoal'],['peptide-meal-log','mealLog'],];
 
 function exportBackup(){
@@ -4240,8 +4287,130 @@ function logMeasurements(){
 }
 function deleteMeasurement(id){measurements=measurements.filter(m=>m.id!==id);lsSave('peptide-measurements',measurements);renderMeasurements();}
 const MEAS_LABELS={waist:'Waist',hips:'Hips',chest:'Chest',larm:'Left arm',rarm:'Right arm',lthigh:'Left thigh',rthigh:'Right thigh'};
+const MEAS_GROWTH_AREAS=[
+  {key:'chest',label:'Chest',parts:['chest']},
+  {key:'arms',label:'Arms',parts:['larm','rarm']},
+  {key:'thighs',label:'Thighs',parts:['lthigh','rthigh']},
+  {key:'hips',label:'Hips / glutes',parts:['hips']},
+  {key:'waist',label:'Waist',parts:['waist'],invert:true}
+];
+function averageMeasurementParts(entry,parts){
+  const vals=(parts||[]).map(part=>Number(entry?.[part]||0)).filter(Boolean);
+  if(!vals.length)return null;
+  return vals.reduce((sum,val)=>sum+val,0)/vals.length;
+}
+function getMeasurementAreaValue(entry,area){return averageMeasurementParts(entry,area.parts);}
+function findMeasurementComparison(area){
+  const ordered=[...measurements].sort((a,b)=>a.date.localeCompare(b.date));
+  const usable=ordered.filter(entry=>getMeasurementAreaValue(entry,area)!=null);
+  if(usable.length<2)return null;
+  const first=usable[0];
+  const latest=usable[usable.length-1];
+  const prev=usable[usable.length-2];
+  const startVal=getMeasurementAreaValue(first,area);
+  const latestVal=getMeasurementAreaValue(latest,area);
+  const prevVal=getMeasurementAreaValue(prev,area);
+  return{
+    first,
+    latest,
+    prev,
+    startVal,
+    latestVal,
+    prevVal,
+    totalDelta:Math.round((latestVal-startVal)*10)/10,
+    recentDelta:Math.round((latestVal-prevVal)*10)/10
+  };
+}
+function formatMeasurementDelta(delta,invert){
+  if(delta==null)return 'No trend yet';
+  const normalized=invert?-delta:delta;
+  const abs=Math.abs(delta).toFixed(1);
+  if(normalized>0)return `+${abs} cm`;
+  if(normalized<0)return `-${abs} cm`;
+  return '0.0 cm';
+}
+function measurementPillClass(delta,invert){
+  if(delta==null)return 'flat';
+  const normalized=invert?-delta:delta;
+  if(normalized>0)return 'up';
+  if(normalized<0)return 'down';
+  return 'flat';
+}
+function getMuscleGrowthSnapshot(){
+  const areaStats=MEAS_GROWTH_AREAS.map(area=>({area,comparison:findMeasurementComparison(area)})).filter(item=>item.comparison);
+  const muscleUpCount=areaStats.filter(item=>!item.area.invert&&item.comparison.totalDelta>0).length;
+  const upperCandidates=['chest','arms'].map(key=>areaStats.find(item=>item.area.key===key)?.comparison?.totalDelta).filter(v=>v!=null);
+  const lowerCandidates=['thighs','hips'].map(key=>areaStats.find(item=>item.area.key===key)?.comparison?.totalDelta).filter(v=>v!=null);
+  const upperAvg=upperCandidates.length?Math.round((upperCandidates.reduce((sum,val)=>sum+val,0)/upperCandidates.length)*10)/10:null;
+  const lowerAvg=lowerCandidates.length?Math.round((lowerCandidates.reduce((sum,val)=>sum+val,0)/lowerCandidates.length)*10)/10:null;
+  return{areaStats,muscleUpCount,upperAvg,lowerAvg};
+}
+function getWorkoutStrengthTrendRows(){
+  const exerciseNames=[...new Set(workoutSessions.flatMap(session=>(session.exercises||[]).map(ex=>ex.name)).filter(Boolean))];
+  return exerciseNames.map(name=>{
+    const history=getWorkoutHistoryForExercise(name);
+    if(history.length<2)return null;
+    const first=history[0];
+    const latest=history[history.length-1];
+    const prev=history[history.length-2];
+    const firstMax=(first.sets||[]).reduce((max,set)=>Math.max(max,Number(set.weight||0)),0);
+    const latestMax=(latest.sets||[]).reduce((max,set)=>Math.max(max,Number(set.weight||0)),0);
+    const prevMax=(prev.sets||[]).reduce((max,set)=>Math.max(max,Number(set.weight||0)),0);
+    const firstVolume=Math.round((first.sets||[]).reduce((sum,set)=>sum+(Number(set.weight||0)*Number(set.reps||0)),0));
+    const latestVolume=Math.round((latest.sets||[]).reduce((sum,set)=>sum+(Number(set.weight||0)*Number(set.reps||0)),0));
+    return{
+      name,
+      latestDate:latest.date,
+      totalLoadDelta:Math.round((latestMax-firstMax)*10)/10,
+      recentLoadDelta:Math.round((latestMax-prevMax)*10)/10,
+      volumeDelta:latestVolume-firstVolume,
+      latestMax,
+      latestVolume
+    };
+  }).filter(Boolean).sort((a,b)=>b.totalLoadDelta-a.totalLoadDelta);
+}
 function renderMeasurements(){
   document.getElementById('meas-date').value=today();
+  const growthSnapshot=getMuscleGrowthSnapshot();
+  const strengthRows=getWorkoutStrengthTrendRows();
+  const upperText=growthSnapshot.upperAvg==null?'0 cm':`${growthSnapshot.upperAvg>0?'+':''}${growthSnapshot.upperAvg.toFixed(1)} cm`;
+  const momentumCount=strengthRows.filter(row=>row.recentLoadDelta>0).length;
+  const upEl=document.getElementById('meas-muscle-up');
+  const upSubEl=document.getElementById('meas-muscle-up-sub');
+  const upperEl=document.getElementById('meas-upper-change');
+  const upperSubEl=document.getElementById('meas-upper-change-sub');
+  const momentumEl=document.getElementById('meas-strength-momentum');
+  const momentumSubEl=document.getElementById('meas-strength-momentum-sub');
+  if(upEl)upEl.textContent=String(growthSnapshot.muscleUpCount);
+  if(upSubEl)upSubEl.textContent=growthSnapshot.areaStats.length?`${growthSnapshot.areaStats.length} tracked body areas compared against your first logged measurement.`:'Start with at least two measurement days to unlock muscle-growth monitoring.';
+  if(upperEl)upperEl.textContent=upperText;
+  if(upperSubEl)upperSubEl.textContent=growthSnapshot.lowerAvg==null?'Chest and arm changes will update as you log more entries.':`Lower body average is ${growthSnapshot.lowerAvg>0?'+':''}${growthSnapshot.lowerAvg.toFixed(1)} cm across thighs and hips.`;
+  if(momentumEl)momentumEl.textContent=String(momentumCount);
+  if(momentumSubEl)momentumSubEl.textContent=strengthRows.length?`${strengthRows.length} exercises have enough history for load trend tracking.`:'Log at least two sessions per exercise to surface strength momentum.';
+  const areaSummary=document.getElementById('meas-area-summary');
+  if(areaSummary){
+    areaSummary.innerHTML=growthSnapshot.areaStats.length?growthSnapshot.areaStats.map(({area,comparison})=>`
+      <div class="growth-row">
+        <div>
+          <div class="growth-area">${area.label}</div>
+          <div class="growth-meta">From ${comparison.startVal.toFixed(1)} cm to ${comparison.latestVal.toFixed(1)} cm since ${new Date(comparison.first.date+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'})}</div>
+          <div class="growth-meta">Latest check-in change: ${comparison.recentDelta>0?'+':''}${comparison.recentDelta.toFixed(1)} cm vs previous entry</div>
+        </div>
+        <span class="growth-pill ${measurementPillClass(comparison.totalDelta,area.invert)}">${formatMeasurementDelta(comparison.totalDelta,area.invert)}</span>
+      </div>`).join(''):'<div class="workout-empty">Add at least two measurement entries to see body-area growth summaries.</div>';
+  }
+  const strengthSummary=document.getElementById('meas-strength-summary');
+  if(strengthSummary){
+    strengthSummary.innerHTML=strengthRows.length?strengthRows.slice(0,6).map(row=>`
+      <div class="growth-row">
+        <div>
+          <div class="growth-area">${row.name}</div>
+          <div class="growth-meta">Top load now ${formatWorkoutWeight(row.latestMax)} · latest volume ${row.latestVolume?row.latestVolume.toLocaleString()+' kg':'Bodyweight / unweighted'}</div>
+          <div class="growth-meta">Last logged ${new Date(row.latestDate+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'})} · recent session ${row.recentLoadDelta>0?'+':''}${row.recentLoadDelta.toFixed(1)} kg</div>
+        </div>
+        <span class="growth-pill ${row.totalLoadDelta>0?'up':row.totalLoadDelta<0?'down':'flat'}">${row.totalLoadDelta>0?'+':''}${row.totalLoadDelta.toFixed(1)} kg</span>
+      </div>`).join(''):'<div class="workout-empty">Strength trends appear here once an exercise has been logged across at least two sessions.</div>';
+  }
   const el=document.getElementById('meas-list');
   if(!measurements.length){el.innerHTML='<div class="empty">No measurements logged yet</div>';return;}
   const rev=[...measurements].reverse();
@@ -5272,6 +5441,380 @@ function renderWorkouts(){
       </div>
       ${renderLegacyWorkoutList()}
     </div>`;
+}
+
+function escapeWorkoutAttr(value){
+  return String(value??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+function escapeWorkoutHtml(value){
+  return String(value??'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+}
+function saveWorkoutLiveDrafts(){lsSave('peptide-workout-live-drafts',workoutLiveDrafts);}
+function getWorkoutDraftKey(splitId,dayId,dateStr){return `${splitId}__${dayId}__${dateStr||today()}`;}
+function getWorkoutDefaultProgressSet(exercise,index){
+  const analytics=getWorkoutExerciseAnalytics(exercise);
+  const suggested=analytics.last?.sets?.[index]||{};
+  return{reps:'',weight:'',rest:Number(suggested.rest||90)};
+}
+function ensureWorkoutLiveDraft(split,day,dateStr){
+  if(!split||!day)return null;
+  const key=getWorkoutDraftKey(split.id,day.id,dateStr||workoutSessionDate||today());
+  const existing=workoutLiveDrafts[key]||{splitId:split.id,dayId:day.id,date:dateStr||today(),duration:'',notes:'',exerciseProgress:{}};
+  existing.splitId=split.id;
+  existing.dayId=day.id;
+  existing.date=dateStr||existing.date||today();
+  existing.duration=existing.duration??'';
+  existing.notes=existing.notes??'';
+  existing.exerciseProgress=existing.exerciseProgress||{};
+  (day.exercises||[]).forEach(exercise=>{
+    const progress=existing.exerciseProgress[exercise.id]||{completed:false,savedAt:null,sets:[]};
+    progress.completed=Boolean(progress.completed);
+    progress.savedAt=progress.savedAt||null;
+    progress.sets=Array.from({length:Number(exercise.sets||0)},(_,index)=>({
+      ...getWorkoutDefaultProgressSet(exercise,index),
+      ...(progress.sets?.[index]||{})
+    }));
+    existing.exerciseProgress[exercise.id]=progress;
+  });
+  Object.keys(existing.exerciseProgress).forEach(exerciseId=>{
+    if(!(day.exercises||[]).some(exercise=>String(exercise.id)===String(exerciseId)))delete existing.exerciseProgress[exerciseId];
+  });
+  workoutLiveDrafts[key]=existing;
+  saveWorkoutLiveDrafts();
+  return existing;
+}
+function getSelectedWorkoutDraft(){
+  const split=workoutSplits.find(item=>String(item.id)===String(selectedWorkoutSplitId));
+  const day=split?.days?.find(item=>String(item.id)===String(selectedWorkoutDayId));
+  if(!split||!day)return null;
+  return ensureWorkoutLiveDraft(split,day,workoutSessionDate||today());
+}
+function updateWorkoutSessionMetaField(field,value){
+  if(field==='date'){
+    workoutSessionDate=value||today();
+    ensureWorkoutSelection();
+    renderWorkouts();
+    return;
+  }
+  if(field==='duration')workoutSessionDuration=value;
+  if(field==='notes')workoutSessionNotes=value;
+  const draft=getSelectedWorkoutDraft();
+  if(draft){
+    if(field==='duration')draft.duration=workoutSessionDuration;
+    if(field==='notes')draft.notes=workoutSessionNotes;
+    saveWorkoutLiveDrafts();
+  }
+}
+function updateWorkoutSetField(exerciseId,setIndex,field,value){
+  const draft=getSelectedWorkoutDraft();
+  if(!draft)return;
+  const progress=draft.exerciseProgress?.[exerciseId];
+  if(!progress)return;
+  progress.sets[setIndex]=progress.sets[setIndex]||{reps:'',weight:'',rest:90};
+  progress.sets[setIndex][field]=value;
+  saveWorkoutLiveDrafts();
+}
+function getWorkoutTimerKey(exerciseId,setIndex){return `${exerciseId}__${setIndex}`;}
+function formatWorkoutCountdown(ms){
+  const total=Math.max(0,Math.ceil(ms/1000));
+  const mins=Math.floor(total/60);
+  const secs=String(total%60).padStart(2,'0');
+  return mins?`${mins}:${secs}`:`0:${secs}`;
+}
+function updateWorkoutTimerDisplay(timerKey){
+  const timer=workoutRestTimers[timerKey];
+  const el=document.getElementById(`wo-rest-display-${timerKey}`);
+  if(!el)return;
+  if(!timer){el.textContent='';return;}
+  const remaining=timer.endsAt-Date.now();
+  el.textContent=remaining>0?formatWorkoutCountdown(remaining):'Done';
+}
+function ensureWorkoutTimerLoop(){
+  if(window.__workoutTimerLoop)return;
+  window.__workoutTimerLoop=setInterval(()=>{
+    Object.keys(workoutRestTimers).forEach(timerKey=>{
+      const timer=workoutRestTimers[timerKey];
+      if(!timer)return;
+      updateWorkoutTimerDisplay(timerKey);
+      if(timer.endsAt-Date.now()<=0)delete workoutRestTimers[timerKey];
+    });
+  },1000);
+}
+ensureWorkoutTimerLoop();
+function startWorkoutRestTimer(exerciseId,setIndex){
+  const draft=getSelectedWorkoutDraft();
+  const progress=draft?.exerciseProgress?.[exerciseId];
+  const seconds=Math.max(0,parseInt(progress?.sets?.[setIndex]?.rest)||0);
+  if(!seconds){showToast('Set a rest time first');return;}
+  const key=getWorkoutTimerKey(exerciseId,setIndex);
+  workoutRestTimers[key]={endsAt:Date.now()+seconds*1000};
+  updateWorkoutTimerDisplay(key);
+}
+function stopWorkoutRestTimer(exerciseId,setIndex){
+  const key=getWorkoutTimerKey(exerciseId,setIndex);
+  delete workoutRestTimers[key];
+  updateWorkoutTimerDisplay(key);
+}
+function syncWorkoutSessionForm(){
+  const nextDate=document.getElementById('wo-session-date')?.value||workoutSessionDate||today();
+  const dateChanged=nextDate!==workoutSessionDate;
+  workoutSessionDate=nextDate;
+  workoutSessionDuration=document.getElementById('wo-session-duration')?.value??workoutSessionDuration;
+  workoutSessionNotes=document.getElementById('wo-session-notes')?.value??workoutSessionNotes;
+  const draft=getSelectedWorkoutDraft();
+  if(draft){
+    draft.date=workoutSessionDate;
+    draft.duration=workoutSessionDuration;
+    draft.notes=workoutSessionNotes;
+    saveWorkoutLiveDrafts();
+  }
+  if(dateChanged)ensureWorkoutSelection();
+}
+function loadWorkoutDraftExercise(dayId,exerciseId){
+  const day=workoutDraftDays.find(item=>String(item.id)===String(dayId));
+  const exercise=day?.exercises?.find(item=>String(item.id)===String(exerciseId));
+  if(!exercise)return;
+  activeWorkoutDraftDayId=dayId;
+  workoutEditingExerciseId=exercise.id;
+  workoutDraftExerciseName=exercise.name||'';
+  workoutDraftExerciseSets=Number(exercise.sets||3);
+  workoutDraftExerciseMinReps=Number(exercise.repMin||8);
+  workoutDraftExerciseMaxReps=Number(exercise.repMax||12);
+  workoutDraftExerciseSuperset=exercise.superset||'';
+  renderWorkouts();
+}
+function adjustWorkoutDraftExerciseSets(dayId,exerciseId,delta){
+  const day=workoutDraftDays.find(item=>String(item.id)===String(dayId));
+  const exercise=day?.exercises?.find(item=>String(item.id)===String(exerciseId));
+  if(!exercise)return;
+  exercise.sets=Math.max(1,Number(exercise.sets||1)+delta);
+  renderWorkouts();
+}
+function syncWorkoutDraftFromForm(){
+  workoutDraftName=document.getElementById('wo-split-name')?.value?.trim()||workoutDraftName;
+  workoutDraftDaysPerWeek=Math.max(1,Math.min(7,parseInt(document.getElementById('wo-split-days-per-week')?.value)||workoutDraftDaysPerWeek||4));
+  workoutDraftDayName=document.getElementById('wo-draft-day-name')?.value||workoutDraftDayName;
+  workoutDraftWeekday=document.getElementById('wo-draft-day-weekday')?.value||workoutDraftWeekday;
+  workoutDraftExerciseName=document.getElementById('wo-draft-exercise-name')?.value||workoutDraftExerciseName;
+  workoutDraftExerciseSets=Math.max(1,parseInt(document.getElementById('wo-draft-exercise-sets')?.value)||workoutDraftExerciseSets||3);
+  workoutDraftExerciseMinReps=Math.max(1,parseInt(document.getElementById('wo-draft-exercise-min')?.value)||workoutDraftExerciseMinReps||8);
+  workoutDraftExerciseMaxReps=Math.max(workoutDraftExerciseMinReps,parseInt(document.getElementById('wo-draft-exercise-max')?.value)||workoutDraftExerciseMaxReps||12);
+  workoutDraftExerciseSuperset=document.getElementById('wo-draft-exercise-superset')?.value?.trim()||workoutDraftExerciseSuperset;
+}
+function resetWorkoutDraft(){
+  editingWorkoutSplitId=null;
+  workoutDraftName='';
+  workoutDraftDaysPerWeek=4;
+  workoutDraftDays=[];
+  activeWorkoutDraftDayId=null;
+  workoutDraftDayName='Push Day';
+  workoutDraftWeekday='Monday';
+  workoutDraftExerciseName='';
+  workoutDraftExerciseSets=3;
+  workoutDraftExerciseMinReps=8;
+  workoutDraftExerciseMaxReps=12;
+  workoutDraftExerciseSuperset='';
+  workoutEditingExerciseId=null;
+}
+function addWorkoutDraftExercise(){
+  syncWorkoutDraftFromForm();
+  const activeDay=workoutDraftDays.find(day=>String(day.id)===String(activeWorkoutDraftDayId));
+  if(!activeDay){showToast('Add a workout day first');return;}
+  const name=(workoutDraftExerciseName||'').trim();
+  if(!name){showToast('Add an exercise name');return;}
+  const record={id:workoutEditingExerciseId||workoutUid('ex'),name,sets:Math.max(1,Number(workoutDraftExerciseSets||3)),repMin:Math.max(1,Number(workoutDraftExerciseMinReps||8)),repMax:Math.max(Number(workoutDraftExerciseMinReps||8),Number(workoutDraftExerciseMaxReps||12)),superset:(workoutDraftExerciseSuperset||'').trim().toUpperCase()};
+  const existingIndex=(activeDay.exercises||[]).findIndex(ex=>String(ex.id)===String(record.id));
+  if(existingIndex>=0)activeDay.exercises[existingIndex]=record;
+  else activeDay.exercises.push(record);
+  workoutDraftExerciseName='';
+  workoutDraftExerciseSets=3;
+  workoutDraftExerciseMinReps=8;
+  workoutDraftExerciseMaxReps=12;
+  workoutDraftExerciseSuperset='';
+  workoutEditingExerciseId=null;
+  renderWorkouts();
+  showToast(existingIndex>=0?'Exercise updated':'Exercise added');
+}
+function removeWorkoutDraftExercise(dayId,exerciseId){
+  const day=workoutDraftDays.find(item=>String(item.id)===String(dayId));
+  if(!day)return;
+  day.exercises=(day.exercises||[]).filter(ex=>String(ex.id)!==String(exerciseId));
+  if(String(workoutEditingExerciseId)===String(exerciseId))workoutEditingExerciseId=null;
+  renderWorkouts();
+}
+function toggleWorkoutCompletedExercises(){
+  workoutShowCompletedExercises=!workoutShowCompletedExercises;
+  renderWorkouts();
+}
+function saveWorkoutExercise(exerciseId){
+  const draft=getSelectedWorkoutDraft();
+  if(!draft)return;
+  const progress=draft.exerciseProgress?.[exerciseId];
+  if(!progress)return;
+  const hasAny=(progress.sets||[]).some(set=>String(set.reps||'').trim()||String(set.weight||'').trim());
+  if(!hasAny){showToast('Log at least one set before saving the exercise');return;}
+  progress.completed=true;
+  progress.savedAt=new Date().toISOString();
+  saveWorkoutLiveDrafts();
+  renderWorkouts();
+  showToast('Exercise saved');
+}
+function editCompletedWorkoutExercise(exerciseId){
+  const draft=getSelectedWorkoutDraft();
+  if(!draft)return;
+  const progress=draft.exerciseProgress?.[exerciseId];
+  if(!progress)return;
+  progress.completed=false;
+  saveWorkoutLiveDrafts();
+  renderWorkouts();
+}
+function renderWorkoutCompletedExercises(day,draft){
+  const completed=(day?.exercises||[]).filter(exercise=>draft?.exerciseProgress?.[exercise.id]?.completed);
+  if(!completed.length)return '';
+  return `<div class="workout-completed-wrap">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <div class="section-label" style="margin-bottom:0;">Completed exercises</div>
+      <button class="btn btn-sm" onclick="toggleWorkoutCompletedExercises()">${workoutShowCompletedExercises?'Hide':'Show'} (${completed.length})</button>
+    </div>
+    ${workoutShowCompletedExercises?completed.map(exercise=>{
+      const progress=draft.exerciseProgress[exercise.id];
+      return `<div class="workout-completed-card">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+          <div>
+            <div class="workout-completed-title">${exercise.name}${exercise.superset?` <span class="workout-superset-badge">SS ${exercise.superset}</span>`:''}</div>
+            <div class="workout-completed-meta">${(progress.sets||[]).filter(set=>String(set.reps||'').trim()||String(set.weight||'').trim()).map(set=>`${set.reps||0} x ${formatWorkoutWeight(set.weight||0)}`).join(', ')||'No sets saved'}</div>
+          </div>
+          <button class="btn btn-sm" onclick="editCompletedWorkoutExercise('${exercise.id}')">Edit</button>
+        </div>
+      </div>`;
+    }).join(''):'<div class="workout-helper" style="margin-top:8px;">Completed exercises are hidden until you need them.</div>'}
+  </div>`;
+}
+function renderWorkoutExerciseCards(day,split){
+  if(!day?.exercises?.length)return '<div class="workout-empty">This workout day is ready for exercises.</div>';
+  const draft=ensureWorkoutLiveDraft(split,day,workoutSessionDate||today());
+  const activeExercises=(day.exercises||[]).filter(exercise=>!draft.exerciseProgress?.[exercise.id]?.completed);
+  if(!activeExercises.length)return `<div class="workout-empty">All exercises for this workout are saved. Finish the workout below or reopen one from completed exercises.</div>${renderWorkoutCompletedExercises(day,draft)}`;
+  return activeExercises.map(exercise=>{
+    const analytics=getWorkoutExerciseAnalytics(exercise);
+    const progress=draft.exerciseProgress?.[exercise.id]||{sets:[]};
+    const lastSets=analytics.last?.sets?.map(set=>`${set.reps} x ${formatWorkoutWeight(set.weight)}`).join(', ')||'No previous sets logged yet';
+    const deltaText=analytics.strengthDelta==null?'No prior comparison':analytics.strengthDelta>0?`Up ${analytics.strengthDelta.toFixed(1)} kg from the last time.`:analytics.strengthDelta<0?`Down ${Math.abs(analytics.strengthDelta).toFixed(1)} kg from the last time.`:'Matched the last top set.';
+    const volumeText=analytics.volumeDelta==null?'Track one more session to compare weekly volume.':analytics.volumeDelta>0?`Volume up ${analytics.volumeDelta.toLocaleString()}`:analytics.volumeDelta<0?`Volume down ${Math.abs(analytics.volumeDelta).toLocaleString()}`:'Volume matched';
+    return `<div class="exercise-card">
+      <div class="exercise-card-header">
+        <div>
+          <div class="exercise-name">${exercise.name}${exercise.superset?` <span class="workout-superset-badge">SS ${exercise.superset}</span>`:''}</div>
+          <div class="exercise-target">${exercise.sets} sets x ${formatWorkoutRepRange(exercise.repMin,exercise.repMax)} reps</div>
+        </div>
+        <div class="workout-actions">
+          <span class="workout-chip">${analytics.bestWeight?`PR ${formatWorkoutWeight(analytics.bestWeight)}`:'Build PR'}</span>
+          <button class="workout-mini-btn" onclick="editWorkoutSplit('${split.id}')">Edit split</button>
+        </div>
+      </div>
+      <div class="workout-helper">${analytics.suggestion}</div>
+      <div class="exercise-analytics">
+        <div class="exercise-stat"><div class="exercise-stat-label">Last session</div><div class="exercise-stat-value">${lastSets}</div></div>
+        <div class="exercise-stat"><div class="exercise-stat-label">Strength</div><div class="exercise-stat-value">${deltaText}</div></div>
+        <div class="exercise-stat"><div class="exercise-stat-label">Volume trend</div><div class="exercise-stat-value">${volumeText}</div></div>
+      </div>
+      <div class="exercise-set-grid rest-enabled">
+        <div class="exercise-set-label">Set</div>
+        <div class="exercise-set-label">Reps</div>
+        <div class="exercise-set-label">Weight (kg)</div>
+        <div class="exercise-set-label">Rest (sec)</div>
+        <div class="exercise-set-label">Timer</div>
+        ${Array.from({length:Number(exercise.sets||0)},(_,index)=>{
+          const suggestedSet=analytics.last?.sets?.[index]||{};
+          const row=progress.sets?.[index]||getWorkoutDefaultProgressSet(exercise,index);
+          const timerKey=getWorkoutTimerKey(exercise.id,index);
+          return `<div class="exercise-set-label" style="padding-bottom:0;">Set ${index+1}</div>
+            <input id="wo-reps-${exercise.id}-${index}" type="number" min="0" step="1" value="${escapeWorkoutAttr(row.reps)}" placeholder="${suggestedSet.reps||exercise.repMin||0}" oninput="updateWorkoutSetField('${exercise.id}',${index},'reps',this.value)"/>
+            <input id="wo-weight-${exercise.id}-${index}" type="number" min="0" step="0.5" value="${escapeWorkoutAttr(row.weight)}" placeholder="${suggestedSet.weight||0}" oninput="updateWorkoutSetField('${exercise.id}',${index},'weight',this.value)"/>
+            <input id="wo-rest-${exercise.id}-${index}" type="number" min="0" step="5" value="${escapeWorkoutAttr(row.rest||90)}" oninput="updateWorkoutSetField('${exercise.id}',${index},'rest',this.value)"/>
+            <div>
+              <div class="workout-actions">
+                <button class="workout-mini-btn good" type="button" onclick="startWorkoutRestTimer('${exercise.id}',${index})">Start</button>
+                <button class="workout-mini-btn warn" type="button" onclick="stopWorkoutRestTimer('${exercise.id}',${index})">Stop</button>
+              </div>
+              <div id="wo-rest-display-${timerKey}" class="workout-rest-display">${workoutRestTimers[timerKey]?formatWorkoutCountdown(workoutRestTimers[timerKey].endsAt-Date.now()):''}</div>
+            </div>`;
+        }).join('')}
+      </div>
+      <div class="workout-actions" style="margin-top:12px;">
+        <button class="btn btn-sm btn-primary" onclick="saveWorkoutExercise('${exercise.id}')">Save exercise</button>
+      </div>
+    </div>`;
+  }).join('')+renderWorkoutCompletedExercises(day,draft);
+}
+function saveWorkoutSession(){
+  syncWorkoutSessionForm();
+  ensureWorkoutSelection();
+  const split=workoutSplits.find(item=>String(item.id)===String(selectedWorkoutSplitId));
+  const day=split?.days?.find(item=>String(item.id)===String(selectedWorkoutDayId));
+  if(!split||!day){showToast('Choose a workout day first');return;}
+  const draft=ensureWorkoutLiveDraft(split,day,workoutSessionDate||today());
+  const exerciseEntries=(day.exercises||[]).map(exercise=>{
+    const progress=draft.exerciseProgress?.[exercise.id];
+    const sets=(progress?.sets||[]).filter(set=>String(set.reps||'').trim()||String(set.weight||'').trim()).map(set=>({reps:Number(set.reps||0),weight:Number(set.weight||0),rest:Number(set.rest||0)}));
+    return sets.length?{exerciseId:exercise.id,name:exercise.name,repMin:exercise.repMin,repMax:exercise.repMax,targetSets:exercise.sets,superset:exercise.superset||'',sets}:null;
+  }).filter(Boolean);
+  if(!exerciseEntries.length){showToast('Save at least one exercise before finishing the workout');return;}
+  const session={id:workoutUid('wose'),splitId:split.id,splitName:split.name,dayId:day.id,dayName:day.name,date:workoutSessionDate||today(),duration:parseInt(draft.duration||workoutSessionDuration)||0,notes:(draft.notes||workoutSessionNotes||'').trim(),exercises:exerciseEntries};
+  workoutSessions.unshift(session);
+  lsSave('peptide-workout-sessions',workoutSessions);
+  delete workoutLiveDrafts[getWorkoutDraftKey(split.id,day.id,workoutSessionDate||today())];
+  saveWorkoutLiveDrafts();
+  workoutSessionDate=today();
+  workoutSessionDuration='';
+  workoutSessionNotes='';
+  workoutShowCompletedExercises=false;
+  renderWorkouts();
+  showToast('Workout finished');
+}
+function renderWorkoutRecentSessions(){
+  const recent=[...workoutSessions].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
+  if(!recent.length)return '<div class="workout-empty">Your logged workout sessions will show up here with sets, reps, weights, and rest data.</div>';
+  return recent.map(session=>`
+    <div class="workout-session-card">
+      <div class="workout-session-top">
+        <div>
+          <div class="workout-session-name">${session.dayName}</div>
+          <div class="workout-session-meta">${session.splitName} - ${new Date(`${session.date}T12:00:00`).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})}${session.duration?` - ${formatWorkoutMinutes(session.duration)}`:''}</div>
+        </div>
+        <div class="workout-actions">
+          <span class="workout-chip">${session.exercises.reduce((sum,exercise)=>sum+(exercise.sets?.length||0),0)} sets</span>
+          <button class="btn btn-sm btn-danger" onclick="deleteWorkoutSession('${session.id}')">Delete</button>
+        </div>
+      </div>
+      <div class="workout-session-exercises">
+        ${session.exercises.map(exercise=>`<div class="workout-session-line"><strong style="color:var(--color-text-primary);">${exercise.name}</strong>${exercise.superset?` <span class="workout-superset-badge">SS ${exercise.superset}</span>`:''} - ${(exercise.sets||[]).map(set=>`${set.reps} x ${formatWorkoutWeight(set.weight)}${set.rest?` (${set.rest}s rest)`:''}`).join(', ')}</div>`).join('')}
+        ${session.notes?`<div class="workout-session-line">${escapeWorkoutHtml(session.notes)}</div>`:''}
+      </div>
+    </div>`).join('');
+}
+function renderWorkouts(){
+  ensureWorkoutSelection();
+  const page=document.getElementById('page-workout');
+  if(!page)return;
+  const activeSplits=workoutSplits.filter(split=>!split.archived);
+  const archivedSplits=workoutSplits.filter(split=>split.archived);
+  const selectedSplit=activeSplits.find(split=>String(split.id)===String(selectedWorkoutSplitId))||activeSplits[0]||null;
+  const selectedDay=selectedSplit?.days?.find(day=>String(day.id)===String(selectedWorkoutDayId))||(selectedSplit?.days||[])[0]||null;
+  const currentDraft=selectedSplit&&selectedDay?ensureWorkoutLiveDraft(selectedSplit,selectedDay,workoutSessionDate||today()):null;
+  if(currentDraft){
+    workoutSessionDuration=currentDraft.duration||'';
+    workoutSessionNotes=currentDraft.notes||'';
+  }
+  const weekStart=getWorkoutWeekStart(today());
+  const weekEnd=new Date(weekStart);weekEnd.setDate(weekStart.getDate()+6);
+  const sessionDatesThisWeek=workoutSessions.filter(session=>{const date=new Date(`${session.date}T12:00:00`);return date>=weekStart&&date<=weekEnd;});
+  const weeklyVolume=Math.round(sessionDatesThisWeek.reduce((sum,session)=>sum+(session.exercises||[]).reduce((inner,exercise)=>inner+(exercise.sets||[]).reduce((acc,set)=>acc+(Number(set.weight||0)*Number(set.reps||0)),0),0),0));
+  const todayWeekday=getWorkoutWeekday(today());
+  const splitCards=activeSplits.length?activeSplits.map(split=>`<div class="workout-split-card ${String(split.id)===String(selectedWorkoutSplitId)?'active':''}"><div class="workout-split-top"><div><div class="workout-split-name">${split.name}</div><div class="workout-split-meta">${split.daysPerWeek} workouts planned each week · ${(split.days||[]).length} split day${(split.days||[]).length!==1?'s':''}</div></div>${(split.days||[]).find(day=>day.weekday===todayWeekday)?'<span class="workout-chip today">Today ready</span>':''}</div><div class="workout-chip-row">${(split.days||[]).map(day=>`<span class="workout-chip">${day.weekday.slice(0,3)} - ${day.name}</span>`).join('')}</div><div class="workout-actions"><button class="btn btn-sm btn-primary" onclick="selectWorkoutSplit('${split.id}')">Open split</button><button class="btn btn-sm" onclick="editWorkoutSplit('${split.id}')">Edit</button><button class="btn btn-sm" onclick="duplicateWorkoutSplit('${split.id}')">Duplicate</button><button class="btn btn-sm btn-danger" onclick="archiveWorkoutSplit('${split.id}')">Archive</button></div></div>`).join(''):'<div class="workout-empty">Build your first training split to start logging exercises, sets, and overload progress.</div>';
+  const draftDaysMarkup=workoutDraftDays.length?workoutDraftDays.map(day=>`<div class="workout-draft-day ${String(day.id)===String(activeWorkoutDraftDayId)?'active':''}"><div class="workout-draft-day-header"><div onclick="selectWorkoutDraftDay('${day.id}')" style="cursor:pointer;"><div class="workout-draft-day-name">${day.weekday} - ${day.name}</div><div class="workout-draft-day-sub">${(day.exercises||[]).length} exercise${(day.exercises||[]).length!==1?'s':''}</div></div><button class="btn btn-sm btn-danger" onclick="removeWorkoutDraftDay('${day.id}')">Remove day</button></div><div class="exercise-pill-list">${(day.exercises||[]).length?(day.exercises||[]).map(ex=>`<span class="exercise-pill">${ex.name}${ex.superset?` · SS ${ex.superset}`:''} · ${ex.sets} x ${formatWorkoutRepRange(ex.repMin,ex.repMax)} <button type="button" style="margin-left:6px;border:none;background:none;color:inherit;cursor:pointer;" onclick="loadWorkoutDraftExercise('${day.id}','${ex.id}')">Edit</button> <button type="button" style="margin-left:4px;border:none;background:none;color:inherit;cursor:pointer;" onclick="adjustWorkoutDraftExerciseSets('${day.id}','${ex.id}',1)">+Set</button> <button type="button" style="margin-left:4px;border:none;background:none;color:inherit;cursor:pointer;" onclick="adjustWorkoutDraftExerciseSets('${day.id}','${ex.id}',-1)">-Set</button> <button type="button" style="margin-left:4px;border:none;background:none;color:inherit;cursor:pointer;" onclick="removeWorkoutDraftExercise('${day.id}','${ex.id}')">×</button></span>`).join(''):'<span class="workout-helper">No exercises added yet.</span>'}</div></div>`).join(''):'<div class="workout-empty">Add each training day here, then stack exercises inside it.</div>';
+  const activeDraftDay=workoutDraftDays.find(day=>String(day.id)===String(activeWorkoutDraftDayId))||null;
+  page.innerHTML=`<div class="page-header"><h2>Workouts</h2><p>Build your split, save each exercise as you finish it, and keep rest timers running set by set.</p></div><div class="metric-grid" style="margin-top:0.5rem;"><div class="metric"><div class="metric-label">This week</div><div class="metric-value">${sessionDatesThisWeek.length}</div><div class="metric-sub">logged sessions</div></div><div class="metric"><div class="metric-label">Volume</div><div class="metric-value">${weeklyVolume?`${Math.round(weeklyVolume/100)/10}k`:'0'}</div><div class="metric-sub">kg this week</div></div><div class="metric"><div class="metric-label">Personal records</div><div class="metric-value">${getWorkoutPRCount()}</div><div class="metric-sub">tracked exercises</div></div></div><div class="workout-shell"><div class="card"><div class="workout-builder-header"><div><div class="section-label" style="margin-bottom:8px">Your splits</div><div class="workout-helper">Choose which split to run today, or build a new one with custom days, exercises, sets, rep ranges, and optional superset tags.</div></div><button class="btn btn-sm" onclick="startNewWorkoutSplit()">${editingWorkoutSplitId?'Start fresh':'New split'}</button></div><div class="workout-split-grid">${splitCards}</div>${archivedSplits.length?`<div style="margin-top:12px;"><div class="section-label" style="margin-bottom:8px">Archived</div><div class="workout-chip-row">${archivedSplits.map(split=>`<span class="exercise-pill">${split.name} <button type="button" style="margin-left:6px;border:none;background:none;color:inherit;cursor:pointer;" onclick="archiveWorkoutSplit('${split.id}')">Restore</button></span>`).join('')}</div></div>`:''}</div><div class="workout-grid"><div class="card"><div class="section-label" style="margin-bottom:10px">${editingWorkoutSplitId?'Edit split':'Build split'}</div><div class="form-row g2"><div><label>Split name</label><input id="wo-split-name" type="text" value="${escapeWorkoutAttr(workoutDraftName)}" placeholder="e.g. Upper / Lower"/></div><div><label>Workouts per week</label><input id="wo-split-days-per-week" type="number" min="1" max="7" value="${workoutDraftDaysPerWeek}"/></div></div><div class="form-row g2"><div><label>Day label</label><input id="wo-draft-day-name" type="text" value="${escapeWorkoutAttr(workoutDraftDayName)}" placeholder="e.g. Push Day"/></div><div><label>Weekday</label><select id="wo-draft-day-weekday">${WORKOUT_WEEKDAYS.map(day=>`<option value="${day}" ${day===workoutDraftWeekday?'selected':''}>${day}</option>`).join('')}</select></div></div><button class="btn btn-sm" onclick="addWorkoutDraftDay()">Add split day</button><div class="workout-draft-list">${draftDaysMarkup}</div><div class="section-label" style="margin:14px 0 10px;">Exercises for ${activeDraftDay?activeDraftDay.name:'the active day'}</div><div class="form-row" style="grid-template-columns:1.3fr 0.7fr 0.7fr 0.7fr 0.8fr;"><div><label>Exercise</label><input id="wo-draft-exercise-name" type="text" value="${escapeWorkoutAttr(workoutDraftExerciseName)}" placeholder="e.g. Chest Press"/></div><div><label>Sets</label><input id="wo-draft-exercise-sets" type="number" min="1" max="12" value="${workoutDraftExerciseSets}"/></div><div><label>Min reps</label><input id="wo-draft-exercise-min" type="number" min="1" max="50" value="${workoutDraftExerciseMinReps}"/></div><div><label>Max reps</label><input id="wo-draft-exercise-max" type="number" min="1" max="50" value="${workoutDraftExerciseMaxReps}"/></div><div><label>Superset</label><input id="wo-draft-exercise-superset" type="text" maxlength="3" value="${escapeWorkoutAttr(workoutDraftExerciseSuperset)}" placeholder="A"/></div></div><div class="workout-actions"><button class="btn btn-sm" onclick="addWorkoutDraftExercise()">${workoutEditingExerciseId?'Update exercise':'Add exercise'}</button><button class="btn btn-primary" onclick="saveWorkoutSplit()">${editingWorkoutSplitId?'Update split':'Save split'}</button></div></div><div class="workout-live-card"><div class="workout-live-top"><div><div class="section-label" style="margin-bottom:8px">Live workout</div><div class="workout-live-title">${selectedDay?selectedDay.name:'Choose a split'}</div><div class="workout-live-sub">${selectedSplit?`${selectedSplit.name} - ${selectedDay?.weekday||''}`:'Pick one of your saved splits to start logging sets.'}</div></div>${selectedSplit?'<span class="workout-chip today">Progressive overload on</span>':''}</div>${selectedSplit?`<div class="workout-day-tabs">${selectedSplit.days.map(day=>`<button class="workout-day-tab ${String(day.id)===String(selectedWorkoutDayId)?'active':''}" onclick="selectWorkoutDay('${day.id}')">${day.weekday.slice(0,3)} - ${day.name}</button>`).join('')}</div><div class="form-row g2" style="margin-top:12px;"><div><label>Date</label><input id="wo-session-date" type="date" value="${workoutSessionDate||today()}" oninput="updateWorkoutSessionMetaField('date',this.value)"/></div><div><label>Duration (minutes)</label><input id="wo-session-duration" type="number" min="0" step="5" value="${escapeWorkoutAttr(workoutSessionDuration)}" oninput="updateWorkoutSessionMetaField('duration',this.value)"/></div></div><div class="form-row" style="grid-template-columns:1fr;"><div><label>Session notes</label><textarea id="wo-session-notes" placeholder="e.g. Last set slowed down, left one rep in reserve" oninput="updateWorkoutSessionMetaField('notes',this.value)">${escapeWorkoutHtml(workoutSessionNotes)}</textarea></div></div>${renderWorkoutExerciseCards(selectedDay,selectedSplit)}<div class="workout-actions" style="margin-top:12px;"><button class="btn btn-primary" onclick="saveWorkoutSession()">Finish workout</button></div>`:'<div class="workout-empty">Save a split on the left, then your workout day will open here with all the sets ready to fill in.</div>'}</div></div><div class="card"><div class="section-label" style="margin-bottom:10px">Progressive overload snapshot</div><div class="workout-progress-grid">${renderWorkoutProgressCards(selectedDay)}</div></div><div class="card"><div class="section-label" style="margin-bottom:10px">Recent sessions</div><div class="workout-recent-list">${renderWorkoutRecentSessions()}</div></div>${renderLegacyWorkoutList()}</div>`;
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
