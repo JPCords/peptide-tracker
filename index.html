@@ -341,6 +341,14 @@ textarea{resize:vertical;min-height:64px;}
 .exercise-stat-value{font-size:12px;font-weight:700;color:var(--color-text-primary);margin-top:4px;}
 .exercise-set-grid{display:grid;grid-template-columns:72px 1fr 1fr;gap:8px;align-items:end;margin-top:10px;}
 .exercise-set-label{font-size:12px;font-weight:600;color:var(--color-text-secondary);padding-bottom:8px;}
+.exercise-set-list{display:flex;flex-direction:column;gap:10px;margin-top:10px;}
+.exercise-set-row{display:grid;grid-template-columns:64px minmax(0,1fr) minmax(0,1fr);gap:8px;padding:10px;border-radius:14px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);align-items:end;}
+.exercise-set-row.rest-enabled{grid-template-columns:64px minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 120px;}
+.exercise-set-index{font-size:12px;font-weight:700;color:var(--color-text-primary);align-self:center;}
+.exercise-set-field label{display:block;font-size:10px;font-weight:700;color:var(--color-text-tertiary);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;}
+.exercise-set-field input{margin:0;}
+.exercise-set-timer{display:flex;flex-direction:column;gap:6px;}
+.exercise-set-timer-buttons{display:flex;gap:6px;flex-wrap:wrap;}
 .workout-progress-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;}
 .workout-progress-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:16px;padding:12px;}
 .workout-progress-title{font-size:13px;font-weight:700;color:var(--color-text-primary);}
@@ -383,8 +391,11 @@ textarea{resize:vertical;min-height:64px;}
 @media(max-width:760px){
   .workout-grid{grid-template-columns:1fr;}
   .exercise-analytics{grid-template-columns:1fr;}
-  .exercise-set-grid.rest-enabled{grid-template-columns:60px 1fr 1fr 1fr;}
-  .workout-rest-display{grid-column:1/-1;text-align:left;min-width:0;}
+  .exercise-set-row{grid-template-columns:1fr 1fr;}
+  .exercise-set-row.rest-enabled{grid-template-columns:1fr 1fr;}
+  .exercise-set-index{grid-column:1/-1;}
+  .exercise-set-timer{grid-column:1/-1;}
+  .workout-rest-display{text-align:left;min-width:0;}
 }
 @media(max-width:640px){
   .growth-grid{grid-template-columns:1fr;}
@@ -5695,13 +5706,15 @@ function renderWorkoutExerciseCards(day,split){
   const draft=ensureWorkoutLiveDraft(split,day,workoutSessionDate||today());
   const activeExercises=(day.exercises||[]).filter(exercise=>!draft.exerciseProgress?.[exercise.id]?.completed);
   if(!activeExercises.length)return `<div class="workout-empty">All exercises for this workout are saved. Finish the workout below or reopen one from completed exercises.</div>${renderWorkoutCompletedExercises(day,draft)}`;
-  return activeExercises.map(exercise=>{
-    const analytics=getWorkoutExerciseAnalytics(exercise);
-    const progress=draft.exerciseProgress?.[exercise.id]||{sets:[]};
-    const lastSets=analytics.last?.sets?.map(set=>`${set.reps} x ${formatWorkoutWeight(set.weight)}`).join(', ')||'No previous sets logged yet';
-    const deltaText=analytics.strengthDelta==null?'No prior comparison':analytics.strengthDelta>0?`Up ${analytics.strengthDelta.toFixed(1)} kg from the last time.`:analytics.strengthDelta<0?`Down ${Math.abs(analytics.strengthDelta).toFixed(1)} kg from the last time.`:'Matched the last top set.';
-    const volumeText=analytics.volumeDelta==null?'Track one more session to compare weekly volume.':analytics.volumeDelta>0?`Volume up ${analytics.volumeDelta.toLocaleString()}`:analytics.volumeDelta<0?`Volume down ${Math.abs(analytics.volumeDelta).toLocaleString()}`:'Volume matched';
-    return `<div class="exercise-card">
+  const exercise=activeExercises[0];
+  const exerciseIndex=(day.exercises||[]).findIndex(item=>String(item.id)===String(exercise.id));
+  const remainingCount=activeExercises.length;
+  const analytics=getWorkoutExerciseAnalytics(exercise);
+  const progress=draft.exerciseProgress?.[exercise.id]||{sets:[]};
+  const lastSets=analytics.last?.sets?.map(set=>`${set.reps} x ${formatWorkoutWeight(set.weight)}`).join(', ')||'No previous sets logged yet';
+  const deltaText=analytics.strengthDelta==null?'No prior comparison':analytics.strengthDelta>0?`Up ${analytics.strengthDelta.toFixed(1)} kg from the last time.`:analytics.strengthDelta<0?`Down ${Math.abs(analytics.strengthDelta).toFixed(1)} kg from the last time.`:'Matched the last top set.';
+  const volumeText=analytics.volumeDelta==null?'Track one more session to compare weekly volume.':analytics.volumeDelta>0?`Volume up ${analytics.volumeDelta.toLocaleString()}`:analytics.volumeDelta<0?`Volume down ${Math.abs(analytics.volumeDelta).toLocaleString()}`:'Volume matched';
+  return `<div class="workout-helper" style="margin:12px 0 8px;">Exercise ${exerciseIndex+1} of ${(day.exercises||[]).length} - ${remainingCount} left to save in this workout.</div><div class="exercise-card">
       <div class="exercise-card-header">
         <div>
           <div class="exercise-name">${exercise.name}${exercise.superset?` <span class="workout-superset-badge">SS ${exercise.superset}</span>`:''}</div>
@@ -5718,34 +5731,40 @@ function renderWorkoutExerciseCards(day,split){
         <div class="exercise-stat"><div class="exercise-stat-label">Strength</div><div class="exercise-stat-value">${deltaText}</div></div>
         <div class="exercise-stat"><div class="exercise-stat-label">Volume trend</div><div class="exercise-stat-value">${volumeText}</div></div>
       </div>
-      <div class="exercise-set-grid rest-enabled">
-        <div class="exercise-set-label">Set</div>
-        <div class="exercise-set-label">Reps</div>
-        <div class="exercise-set-label">Weight (kg)</div>
-        <div class="exercise-set-label">Rest (sec)</div>
-        <div class="exercise-set-label">Timer</div>
+      <div class="exercise-set-list">
         ${Array.from({length:Number(exercise.sets||0)},(_,index)=>{
           const suggestedSet=analytics.last?.sets?.[index]||{};
           const row=progress.sets?.[index]||getWorkoutDefaultProgressSet(exercise,index);
           const timerKey=getWorkoutTimerKey(exercise.id,index);
-          return `<div class="exercise-set-label" style="padding-bottom:0;">Set ${index+1}</div>
-            <input id="wo-reps-${exercise.id}-${index}" type="number" min="0" step="1" value="${escapeWorkoutAttr(row.reps)}" placeholder="${suggestedSet.reps||exercise.repMin||0}" oninput="updateWorkoutSetField('${exercise.id}',${index},'reps',this.value)"/>
-            <input id="wo-weight-${exercise.id}-${index}" type="number" min="0" step="0.5" value="${escapeWorkoutAttr(row.weight)}" placeholder="${suggestedSet.weight||0}" oninput="updateWorkoutSetField('${exercise.id}',${index},'weight',this.value)"/>
-            <input id="wo-rest-${exercise.id}-${index}" type="number" min="0" step="5" value="${escapeWorkoutAttr(row.rest||90)}" oninput="updateWorkoutSetField('${exercise.id}',${index},'rest',this.value)"/>
-            <div>
-              <div class="workout-actions">
+          return `<div class="exercise-set-row rest-enabled">
+            <div class="exercise-set-index">Set ${index+1}</div>
+            <div class="exercise-set-field">
+              <label for="wo-reps-${exercise.id}-${index}">Reps</label>
+              <input id="wo-reps-${exercise.id}-${index}" type="number" min="0" step="1" value="${escapeWorkoutAttr(row.reps)}" placeholder="${suggestedSet.reps||exercise.repMin||0}" oninput="updateWorkoutSetField('${exercise.id}',${index},'reps',this.value)"/>
+            </div>
+            <div class="exercise-set-field">
+              <label for="wo-weight-${exercise.id}-${index}">Weight (kg)</label>
+              <input id="wo-weight-${exercise.id}-${index}" type="number" min="0" step="0.5" value="${escapeWorkoutAttr(row.weight)}" placeholder="${suggestedSet.weight||0}" oninput="updateWorkoutSetField('${exercise.id}',${index},'weight',this.value)"/>
+            </div>
+            <div class="exercise-set-field">
+              <label for="wo-rest-${exercise.id}-${index}">Rest (sec)</label>
+              <input id="wo-rest-${exercise.id}-${index}" type="number" min="0" step="5" value="${escapeWorkoutAttr(row.rest||90)}" oninput="updateWorkoutSetField('${exercise.id}',${index},'rest',this.value)"/>
+            </div>
+            <div class="exercise-set-timer">
+              <label>Timer</label>
+              <div class="exercise-set-timer-buttons">
                 <button class="workout-mini-btn good" type="button" onclick="startWorkoutRestTimer('${exercise.id}',${index})">Start</button>
                 <button class="workout-mini-btn warn" type="button" onclick="stopWorkoutRestTimer('${exercise.id}',${index})">Stop</button>
               </div>
-              <div id="wo-rest-display-${timerKey}" class="workout-rest-display">${workoutRestTimers[timerKey]?formatWorkoutCountdown(workoutRestTimers[timerKey].endsAt-Date.now()):''}</div>
-            </div>`;
+              <div id="wo-rest-display-${timerKey}" class="workout-rest-display">${workoutRestTimers[timerKey]?formatWorkoutCountdown(workoutRestTimers[timerKey].endsAt-Date.now()):'Ready'}</div>
+            </div>
+          </div>`;
         }).join('')}
       </div>
       <div class="workout-actions" style="margin-top:12px;">
         <button class="btn btn-sm btn-primary" onclick="saveWorkoutExercise('${exercise.id}')">Save exercise</button>
       </div>
-    </div>`;
-  }).join('')+renderWorkoutCompletedExercises(day,draft);
+    </div>${renderWorkoutCompletedExercises(day,draft)}`;
 }
 function saveWorkoutSession(){
   syncWorkoutSessionForm();
